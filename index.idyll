@@ -1,0 +1,183 @@
+[meta title:"396final" description:"Explorable Explanation of Type I and Type II error" /]
+
+[Header
+  fullWidth:true
+  title:"How Sure Are You?"
+  subtitle:"A look into statistical hypothesis testing"
+  author:"Shu Han"
+  authorLink:"https://idyll-lang.org"
+  date:`(new Date()).toDateString()`
+  background:"#222222"
+  color:"#ffffff"
+   /]
+
+
+## Introduction
+
+Lets play a guessing game! Below are two coins. One is a fair
+coin that will land red or black with equal chance. The other
+is a weighted coin that will land one color 75% of the time
+and the other only 25% of the time.
+
+Click on the button under the coins to flip them. A counter is included so you dont
+have to worry about tracking the results yourself. When you feel
+confident you know which coin is the weighted one, click on your guess
+to find out if you were right! (if you don't want to wait for the animation
+feel free to spam the button)
+
+[div]
+[inline][Coin/][/inline]
+[inline][CoinRigged/][/inline]
+[/div]
+
+##Ready to Guess?
+
+[Guess1/]
+
+#Lets Try Another Game
+
+Here we only have one coin. It is either a normal fair coin, or
+a weighted one that will land on one color 55% of the time and
+the other only 45% of the time. Flip the coin until you feel confident
+that you know if it is fair or not, and click on your guess! (note that
+this time there is a flip 10x button to save you some time)
+
+[Coin3/]
+
+##Ready to Guess?
+
+[Guess2/]
+
+#How Sure Were You?
+
+We knew the expected probabilities of all three coins shown in the guessing
+games you just played. However, it is very unlikely that as you flipped
+the results lined up exactly with how the probabilities were set up. Why?
+Because of random chance.
+
+
+
+##Probability Distributions and the Issue with Random Chance
+
+In statistics, probability distributions are mathimatical functions which describe
+the probability of different outcomes of an experiment. Take our first coin example;
+the two possible outcomes are the two sides and the probability of each side
+on any given flip is set - 50% for the fair coin and 75% for the weighted one.
+
+However, this probability of results gets in the way of accurately understanding
+real world data. It was likely that at most points of your experiment with the
+second coin game that the number of blue and purple results were not the same.
+But how do you know if it was due to it being weighted, or to simple chance?
+
+
+##The Central Limit Theorem and a Return to Normalcy
+
+One way of getting past the uncertainty randomness creates is by increasing the sample size.
+
+The graph below shows a random sample of a normal distribution, with a mean of 0 and
+a standard deviation of 1. Each sample is randomly generated using the probability equation,
+and the histogram shows the results. The line shows the true distribution. Click the re-sample
+button to see how random sampling results in different data, and notice how the
+distribution gets closer to the expected true distribution as the sample size increases
+
+[var name:"state" value:0 /]
+[var name:"sample" value: 50/]
+[Distributions state:state samplesize:sample/]
+[div]
+[Float position:"left"][button onClick: `state++`]Re-Sample[/button][/Float]
+Sample Size: [TextInput value:sample /]
+[/div]
+
+
+
+The normal distribution is one of many different distributions out there. In fact,
+with real world data and experiments, there is no mathimatical model that fits
+the data perfectly. So how do we find the true value of data? How do we know if the coin
+is truly weighted?
+
+Well, we can't. Not with 100% certainty anyways. But we can make a good guess if
+we design a good experiment. Thats where the Central Limit Theorem comes in!
+Wolfram MathWorld defines the Central Limit Theorem as:
+
+*Let [Equation]X_1,X_2,...,X_N[/Equation] be a set of N independent random variates and each [Equation]X_i[/Equation] have an arbitrary probability distribution [Equation]P(x_1,...,x_N)[/Equation] with mean [Equation]\mu_i[/Equation] and a finite variance [Equation]\sigma_i^2[/Equation]. Then the normal form variate has a limiting cumulative distribution function which approaches a normal distribution.*
+
+##In Simpler Terms Please...
+
+Wow, thats a mouthful. There's variables, greek letters, and a lot of big words. To
+explain it more simply so we can get to discussing error types, what the CLT basically
+tells us is this: For anything we take independent samples of, as long as we take
+enough samples (usually meaning over 30), the mean of these samples has an
+approximately normal distribution and approaches the true mean of the population.
+By taking advantage of this fact, we can predict the true characteristics of the
+population without needing to know or model the true population.
+
+##So Sampling Enough Times Answers Everything?
+
+Nope. Unfortunately, randomness still gets in the way. Even if we take an infinite number
+of samples, it will still be a normal distribution, which goes to infinity. Unfortunately,
+statistics in the real world, like most things, is never certain. Furthermore, testing
+is often expensive and sample sizes are often limited due to resources. The best we can do is
+hedge our prediction. That is where hypothesis testing comes in!
+
+#Hypothesis Testing
+
+Statistical hypothesis testing is a system that uses the CLT to "reject" or "fail to reject"
+a null hypothesis. A null hypothesis is the assumption that nothing is different, or that
+the result is not statisticly significant from the accepted population. For
+example, the null for the coin games was that the coin was fair. The null for a new
+medicine would be that it does not do anything. As we learned above, after sampling a population
+the sample mean is a normally distributed variable. The CLT also tells us that the sample
+mean approaches the true mean, with a standard deviation of [Equation]\frac{\sigma}{\sqrt{n}}[/Equation]
+where n is the sample size and and [Equation]\sigma[/Equation] is the population standard deviation.
+Thus, we now have a distribution for the null hypothesis; a normal distribution where
+the mean is the population mean and the standard deviation is [Equation]\frac{\sigma}{\sqrt{n}}[/Equation].
+
+##P-Values and Confidence
+
+This distribution tells us the expected results of the null hypothesis. Now, given this
+and the sample mean we found through our experiment, we need to interpret the result.
+We do this with the p-value. This is compared to the significance level, usually represented
+by [Equation]\alpha[/Equation] that we determine beforehand. This level describes the threshold
+where we determine our sample mean is significant and we reject the null hypothesis.
+The p-value can be thought of as the probability of the results we got given the
+null hypothesis. It allows us to reasonably look at the result we got given the distribution of expected results.
+If the p-value is less than alpha, we reject the null at a confidence level of 1-alpha.
+If it is not less than alpha we fail to reject the null.
+
+Note the language here; we always give a confidence level, and if the p-value is not
+less than alpha we fail to reject the null instead of accepting it. This is because
+the p-value is a probability. For example, if we set alpha to 0.05, we would reject
+the null if we got a p-value of 0.03. However, 0.03 means that there is a 3% chance
+we saw this sample mean given the population mean and standard deviation. Similarly,
+if we got a p-value is 0.07, we would fail to reject the null because it is not past
+the threshold we set of 0.05, but we cannot accept the null as we do not have evidence
+that it is true, we just don't have enough that it is false.
+
+Play around with the graph below to see how the different inputs affect the result
+of a hypothesis test. Note that changing the population mean and standard deviation
+has no effect on the shape of the curve; the normal distribution of the expected
+results do not change.
+
+[var name:"mu" value: 0 /]
+[var name:"sigma" value: 1 /]
+[var name:"x" value: 0 /]
+[var name:"n" value: 30 /]
+[var name:"alpha" value: 0.05 /]
+[var name:"side" value:"right" /]
+[div]
+[HypTest mean:mu sigma:sigma xbar:x nsamples:n alpha:alpha side:side /]
+
+[Equation]\mu[/Equation]: [TextInput value:mu /]
+[Equation]\sigma[/Equation]: [TextInput value:sigma /]
+
+[Equation]\bar{x}[/Equation]: [TextInput value:x /]
+n: [TextInput value:n /]
+
+[Equation]\alpha[/Equation]: [TextInput value:alpha /]
+Side: [Select value:side options:`["left", "right", "two-sided"]` /]
+[/div]
+Thus, we can normalize the result we get to a standard normal distribution
+using [Equation]\frac{\bar{x}-\mu}{\frac{\sigma}{\sqrt{n}}}[/Equation]
+where [Equation]\bar{x}[/Equation] is the sample mean and [Equation]\mu[/Equation] is
+the population mean. Note that the standard normal distribution [Equation]N[0,1][/Equation] is
+the same distribution we samples from earlier!
