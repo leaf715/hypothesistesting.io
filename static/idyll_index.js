@@ -72,8 +72,8 @@ var Distributions = function (_D3Component) {
       var g = svg.append("svg:g").classed("series", true);
 
       g.append("path").attr("fill", "none").attr("stroke-width", 3).attr("stroke", "navy").attr("d", function (d) {
-        return d3.line()(x.ticks(100).map(function (xi) {
-          return [x(xi), y2(pdf(xi))];
+        return d3.line()(x.ticks(100).map(function (i) {
+          return [x(i), y2(pdf(i))];
         }));
       });
     }
@@ -138,13 +138,345 @@ function normal() {
 }
 
 function pdf(x) {
-  // per: http://en.wikipedia.org/wiki/Gaussian_function
-  // and: http://mathworld.wolfram.com/GaussianFunction.html
   var a = 1 / sqrt(2 * pi);
   return a * pow(e, -(x * x) / 2);
 }
 
 module.exports = Distributions;
+
+},{"d3":"/Users/ShuHan/Downloads/396final/node_modules/d3/build/d3.node.js","idyll-d3-component":"/Users/ShuHan/Downloads/396final/node_modules/idyll-d3-component/lib.js","react":"react"}],"/Users/ShuHan/Downloads/396final/components/ErrorTest.js":[function(require,module,exports){
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var React = require('react');
+var D3Component = require('idyll-d3-component');
+var d3 = require('d3');
+
+var margin = { top: 20, right: 50, bottom: 60, left: 50 },
+    width = 600 - margin.left - margin.right,
+    height = 330 - margin.top - margin.bottom;
+
+var sqrt = Math.sqrt,
+    pow = Math.pow,
+    e = Math.E,
+    pi = Math.PI;
+
+var ErrorTest = function (_D3Component) {
+  _inherits(ErrorTest, _D3Component);
+
+  function ErrorTest() {
+    _classCallCheck(this, ErrorTest);
+
+    return _possibleConstructorReturn(this, (ErrorTest.__proto__ || Object.getPrototypeOf(ErrorTest)).apply(this, arguments));
+  }
+
+  _createClass(ErrorTest, [{
+    key: 'initialize',
+    value: function initialize(node, props) {
+      this.svg = (this.svg = d3.select(node).append('svg')).attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom).append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      var minXo = Number(props.muo) - 4 * Number(props.stdo);
+      var maxXo = Number(props.muo) + 4 * Number(props.stdo);
+
+      var minXa = Number(props.mua) - 4 * Number(props.stda);
+      var maxXa = Number(props.mua) + 4 * Number(props.stda);
+
+      var x = d3.scaleLinear().domain([d3.min([minXo, minXa]), d3.max([maxXo, maxXa])]).range([0, width]);
+
+      var y = d3.scaleLinear().domain([0, d3.max([1 / (sqrt(2 * pi) * props.stdo), 1 / (sqrt(2 * pi) * props.stda)])]).range([height, 0]);
+
+      var lineo = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props.muo, props.stdo))];
+      });
+
+      var linea = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props.mua, props.stda))];
+      });
+
+      this.svg.selectAll("g").remove();
+
+      this.xax = this.svg.append("g").attr("transform", "translate(0," + height + ")").call(d3.axisBottom(x));
+
+      this.yax = this.svg.append("g").call(d3.axisLeft(y));
+
+      var g = this.svg.append("svg:g").classed("series", true);
+
+      this.curveo = g.append("path").attr("fill", "none").attr("stroke-width", 3).attr("stroke", "navy").attr("d", d3.line()(lineo));
+
+      this.curvea = g.append("path").attr("fill", "none").attr("stroke-width", 3).attr("stroke", "maroon").attr("d", d3.line()(linea));
+
+      if (props.muo <= props.mua) {
+        var siglvl = NormSInv(props.alpha / 1000) * props.stdo + Number(props.muo);
+        var ii = props.stdo / 20;
+        var incr = Math.round(siglvl * 100) / 100 + ii;
+        var xarea = [siglvl, incr];
+        while (incr < maxXo) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
+
+        var areai = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.muo, props.stdo))];
+        });
+
+        xarea = [];
+        var decr = siglvl;
+        while (decr > minXa) {
+          xarea.push(decr);
+          decr -= ii;
+        }
+
+        var areaii = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.mua, props.stda))];
+        });
+      } else {
+        var siglvl = -NormSInv(props.alpha / 1000) * props.stdo + Number(props.muo);
+        var ii = props.stdo / 20;
+        var incr = Math.round(siglvl * 100) / 100 - ii;
+        var xarea = [siglvl, incr];
+        while (incr > minXo) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var areai = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.muo, props.stdo))];
+        });
+
+        xarea = [];
+        var decr = siglvl;
+        while (decr < maxXa) {
+          xarea.push(decr);
+          decr += ii;
+        }
+
+        var areaii = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.mua, props.stda))];
+        });
+      }
+
+      this.areao = g.append("path").datum(areai).attr("fill", "navy").attr("stroke-width", 3).attr("stroke", "navy").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1];
+      }));
+
+      this.areaa = g.append("path").datum(areaii).attr("fill", "maroon").attr("stroke-width", 3).attr("stroke", "maroon").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1];
+      }));
+
+      this.xbarline = g.append("line").attr("x1", x(siglvl)) //<<== change your code here
+      .attr("y1", 0).attr("x2", x(siglvl)) //<<== and here
+      .attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+
+      this.xbarlabel = g.append("text").attr("x", x(siglvl) - 4).attr("y", -5).attr("font-size", 12).text(String.fromCharCode(593));
+
+      var beta = normalcdf((siglvl - props.mua) / props.stda) * 100;
+
+      if (props.muo > props.mua) {
+        beta = 100 - beta;
+      }
+
+      var text = "P(Type I): " + Number(props.alpha / 10).toFixed(3) + "% --- P(Type II): " + Number(beta).toFixed(3) + "%";
+
+      this.result = this.svg.append("text").attr("x", -20).attr("y", 295).text(text);
+    }
+  }, {
+    key: 'update',
+    value: function update(props, oldProps) {
+      this.draw(props);
+    }
+  }, {
+    key: 'draw',
+    value: function draw(props) {
+      var minXo = Number(props.muo) - 4 * Number(props.stdo);
+      var maxXo = Number(props.muo) + 4 * Number(props.stdo);
+
+      var minXa = Number(props.mua) - 4 * Number(props.stda);
+      var maxXa = Number(props.mua) + 4 * Number(props.stda);
+
+      var x = d3.scaleLinear().domain([d3.min([minXo, minXa]), d3.max([maxXo, maxXa])]).range([0, width]);
+
+      var y = d3.scaleLinear().domain([0, d3.max([1 / (sqrt(2 * pi) * props.stdo), 1 / (sqrt(2 * pi) * props.stda)])]).range([height, 0]);
+
+      var lineo = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props.muo, props.stdo))];
+      });
+
+      var linea = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props.mua, props.stda))];
+      });
+
+      this.xax.transition().duration(1000).call(d3.axisBottom(x));
+
+      this.yax.transition().duration(1000).call(d3.axisLeft(y));
+
+      this.curveo.transition().duration(1000).attr("fill", "none").attr("stroke-width", 3).attr("stroke", "navy").attr("d", d3.line()(lineo));
+
+      this.curvea.transition().duration(1000).attr("fill", "none").attr("stroke-width", 3).attr("stroke", "maroon").attr("d", d3.line()(linea));
+
+      if (props.muo <= props.mua) {
+        var siglvl = NormSInv(props.alpha / 1000) * props.stdo + Number(props.muo);
+        var ii = props.stdo / 20;
+        var incr = Math.round(siglvl * 100) / 100 + ii;
+        var xarea = [siglvl, incr];
+        while (incr < maxXo) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
+
+        var areai = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.muo, props.stdo))];
+        });
+
+        xarea = [];
+        var decr = siglvl;
+        while (decr > minXa) {
+          xarea.push(decr);
+          decr -= ii;
+        }
+
+        var areaii = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.mua, props.stda))];
+        });
+      } else {
+        var siglvl = -NormSInv(props.alpha / 1000) * props.stdo + Number(props.muo);
+        var ii = props.stdo / 20;
+        var incr = Math.round(siglvl * 100) / 100 - ii;
+        var xarea = [siglvl, incr];
+        while (incr > minXo) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var areai = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.muo, props.stdo))];
+        });
+
+        xarea = [];
+        var decr = siglvl;
+        while (decr < maxXa) {
+          xarea.push(decr);
+          decr += ii;
+        }
+
+        var areaii = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props.mua, props.stda))];
+        });
+      }
+
+      this.areao.datum(areai).transition().duration(1000).attr("fill", "navy").attr("stroke-width", 0).attr("stroke", "navy").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(function (d) {
+        return y(0);
+      }).y1(function (d) {
+        return d[1] + 1;
+      }));
+
+      this.areaa.datum(areaii).transition().duration(1000).attr("fill", "maroon").attr("stroke-width", 0).attr("stroke", "maroon").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1] + 1;
+      }));
+
+      this.xbarline.transition().duration(1000).attr("x1", x(siglvl)) //<<== change your code here
+      .attr("y1", 0).attr("x2", x(siglvl)) //<<== and here
+      .attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+
+      this.xbarlabel.transition().duration(1000).attr("x", x(siglvl) - 4).attr("y", -5).attr("font-size", 12).text(String.fromCharCode(593));
+
+      var beta = normalcdf((siglvl - props.mua) / props.stda) * 100;
+
+      if (props.muo > props.mua) {
+        beta = 100 - beta;
+      }
+
+      var text = "P(Type I): " + Number(props.alpha / 10).toFixed(3) + "% --- P(Type II): " + Number(beta).toFixed(3) + "%";
+
+      this.result.transition().duration(1000).text(text);
+    }
+  }]);
+
+  return ErrorTest;
+}(D3Component);
+
+//https://stackoverflow.com/questions/8816729/javascript-equivalent-for-inverse-normal-function-eg-excels-normsinv-or-nor
+
+
+function NormSInv(p) {
+  var a1 = -39.6968302866538,
+      a2 = 220.946098424521,
+      a3 = -275.928510446969;
+  var a4 = 138.357751867269,
+      a5 = -30.6647980661472,
+      a6 = 2.50662827745924;
+  var b1 = -54.4760987982241,
+      b2 = 161.585836858041,
+      b3 = -155.698979859887;
+  var b4 = 66.8013118877197,
+      b5 = -13.2806815528857,
+      c1 = -7.78489400243029E-03;
+  var c2 = -0.322396458041136,
+      c3 = -2.40075827716184,
+      c4 = -2.54973253934373;
+  var c5 = 4.37466414146497,
+      c6 = 2.93816398269878,
+      d1 = 7.78469570904146E-03;
+  var d2 = 0.32246712907004,
+      d3 = 2.445134137143,
+      d4 = 3.75440866190742;
+  var p_low = 0.02425,
+      p_high = 1 - p_low;
+  var q, r;
+  var retVal;
+
+  if (p < 0 || p > 1) {
+    alert("NormSInv: Argument out of range.");
+    retVal = 0;
+  } else if (p < p_low) {
+    q = Math.sqrt(-2 * Math.log(p));
+    retVal = (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+  } else if (p <= p_high) {
+    q = p - 0.5;
+    r = q * q;
+    retVal = (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q / (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+  } else {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    retVal = -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+  }
+
+  return -1 * retVal;
+}
+
+// https://www.math.ucla.edu/~tom/distributions/normal.html?
+function normalcdf(X) {
+  //HASTINGS.  MAX ERROR = .000001
+  var T = 1 / (1 + .2316419 * Math.abs(X));
+  var D = .3989423 * Math.exp(-X * X / 2);
+  var Prob = D * T * (.3193815 + T * (-.3565638 + T * (1.781478 + T * (-1.821256 + T * 1.330274))));
+  if (X > 0) {
+    Prob = 1 - Prob;
+  }
+  return Prob;
+}
+
+function pdf(x, mu, std) {
+  // per: http://en.wikipedia.org/wiki/Gaussian_function
+  // and: http://mathworld.wolfram.com/GaussianFunction.html
+  var a = 1 / (std * sqrt(2 * pi));
+  return a * pow(e, -1 * pow((x - mu) / std, 2) / 2);
+}
+
+module.exports = ErrorTest;
 
 },{"d3":"/Users/ShuHan/Downloads/396final/node_modules/d3/build/d3.node.js","idyll-d3-component":"/Users/ShuHan/Downloads/396final/node_modules/idyll-d3-component/lib.js","react":"react"}],"/Users/ShuHan/Downloads/396final/components/HypTest.js":[function(require,module,exports){
 'use strict';
@@ -161,7 +493,7 @@ var React = require('react');
 var D3Component = require('idyll-d3-component');
 var d3 = require('d3');
 
-var margin = { top: 10, right: 30, bottom: 60, left: 40 },
+var margin = { top: 20, right: 50, bottom: 60, left: 50 },
     width = 600 - margin.left - margin.right,
     height = 330 - margin.top - margin.bottom;
 
@@ -189,18 +521,15 @@ var HypTest = function (_D3Component) {
       var minX = Number(props.mean) - 4 * Number(std);
       var maxX = Number(props.mean) + 4 * Number(std);
 
-      console.log(minX);
-      console.log(maxX);
-
       var x = d3.scaleLinear().domain([d3.min([minX, props.xbar]), d3.max([maxX, props.xbar])]).range([0, width]);
 
       var y = d3.scaleLinear().domain([0, 1 / (sqrt(2 * pi) * std)]).range([height, 0]);
 
-      var line = x.ticks(100).map(function (xi) {
-        return [x(xi), y(pdf(xi, props))];
+      var line = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props))];
       });
 
-      var area = this.svg.selectAll("g").remove();
+      this.svg.selectAll("g").remove();
 
       this.xax = this.svg.append("g").attr("transform", "translate(0," + height + ")").call(d3.axisBottom(x));
 
@@ -210,11 +539,110 @@ var HypTest = function (_D3Component) {
 
       this.curve = g.append("path").attr("fill", "none").attr("stroke-width", 3).attr("stroke", "navy").attr("d", d3.line()(line));
 
-      this.xbarline = g.append("line").attr("x1", x(props.xbar)) //<<== change your code here
-      .attr("y1", 0).attr("x2", x(props.xbar)) //<<== and here
-      .attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+      if (props.side === "right") {
+        var axbar = NormSInv(props.alpha) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 + ii;
+        var xarea = [axbar, incr];
+        while (incr < maxX) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
 
-      this.result = this.svg.append("text").attr("x", -20).attr("y", 305).text("Test");
+        var rarea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        var larea = [];
+      } else if (props.side === "left") {
+        var axbar = -1 * NormSInv(props.alpha) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 - ii;
+        var xarea = [incr, axbar];
+        while (incr > minX) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var larea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        var rarea = [];
+      } else {
+        var axbar = NormSInv(props.alpha / 2) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 + ii;
+        var xarea = [axbar, incr];
+        while (incr < maxX) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
+
+        var rarea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        axbar = -1 * NormSInv(props.alpha / 2) * std + Number(props.mean);
+        ii = std / 20;
+        incr = Math.round(axbar * 100) / 100 - ii;
+        xarea = [incr, axbar];
+        while (incr > minX) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var larea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+      }
+
+      this.arearight = g.append("path").datum(rarea).attr("fill", "green").attr("stroke-width", 3).attr("stroke", "green").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1];
+      }));
+
+      this.arealeft = g.append("path").datum(larea).attr("fill", "green").attr("stroke-width", 3).attr("stroke", "green").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1];
+      }));
+
+      this.xbarline = g.append("line").attr("x1", x(props.xbar)).attr("y1", 0).attr("x2", x(props.xbar)).attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+
+      this.xbarlabel = g.append("text").attr("x", x(props.xbar) - 35).attr("y", -5).attr("font-size", 12).text("Sample Mean");
+
+      var pvalue = normalcdf((props.xbar - props.mean) / std);
+
+      if (props.side === "right") {
+        var text = "P-Value: " + (1 - pvalue).toFixed(3);
+        if (1 - pvalue <= Number(props.alpha)) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      } else if (props.side === "left") {
+        var text = "P-Value: " + pvalue.toFixed(3);
+        if (pvalue <= Number(props.alpha)) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      } else {
+        if (pvalue > .5) {
+          var text = "P-Value: " + (1 - pvalue).toFixed(3);
+        } else {
+          var text = "P-Value: " + pvalue.toFixed(3);
+        }
+        if (pvalue <= Number(props.alpha) / 2 || 1 - pvalue <= Number(props.alpha) / 2) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      }
+
+      this.result = this.svg.append("text").attr("x", -20).attr("y", 295).text(text);
     }
   }, {
     key: 'update',
@@ -229,18 +657,15 @@ var HypTest = function (_D3Component) {
       var minX = Number(props.mean) - 4 * Number(std);
       var maxX = Number(props.mean) + 4 * Number(std);
 
-      console.log(minX);
-      console.log(maxX);
-
       var x = d3.scaleLinear().domain([d3.min([minX, props.xbar]), d3.max([maxX, props.xbar])]).range([0, width]);
 
       var y = d3.scaleLinear().domain([0, 1 / (sqrt(2 * pi) * std)]).range([height, 0]);
 
-      var line = x.ticks(100).map(function (xi) {
-        return [x(xi), y(pdf(xi, props))];
+      var line = x.ticks(100).map(function (i) {
+        return [x(i), y(pdf(i, props))];
       });
 
-      // this.svg.selectAll("g").remove()
+      console.log(props.mean);
 
       this.xax.transition().duration(1000).call(d3.axisBottom(x));
 
@@ -248,16 +673,175 @@ var HypTest = function (_D3Component) {
 
       this.curve.transition().duration(1000).attr("fill", "none").attr("stroke-width", 3).attr("stroke", "navy").attr("d", d3.line()(line));
 
-      this.xbarline.transition().duration(1000).attr("x1", x(props.xbar)) //<<== change your code here
-      .attr("y1", 0).attr("x2", x(props.xbar)) //<<== and here
-      .attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+      if (props.side === "right") {
+        var axbar = NormSInv(props.alpha) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 + ii;
+        var xarea = [axbar, incr];
+        while (incr < maxX) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
 
-      this.result.transition().duration(1000).text("Changed");
+        var rarea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        var larea = [];
+      } else if (props.side === "left") {
+        var axbar = -1 * NormSInv(props.alpha) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 - ii;
+        var xarea = [incr, axbar];
+        while (incr > minX) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var larea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        var rarea = [];
+      } else {
+        var axbar = NormSInv(props.alpha / 2) * std + Number(props.mean);
+        var ii = std / 20;
+        var incr = Math.round(axbar * 100) / 100 + ii;
+        var xarea = [axbar, incr];
+        while (incr < maxX) {
+          xarea.push(incr + ii);
+          incr += ii;
+        };
+
+        var rarea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+
+        axbar = -1 * NormSInv(props.alpha / 2) * std + Number(props.mean);
+        ii = std / 20;
+        incr = Math.round(axbar * 100) / 100 - ii;
+        xarea = [incr, axbar];
+        while (incr > minX) {
+          xarea.push(incr - ii);
+          incr -= ii;
+        };
+
+        var larea = xarea.map(function (i) {
+          return [x(i), y(pdf(i, props))];
+        });
+      }
+
+      this.arearight.datum(rarea).transition().duration(1000).attr("fill", "green").attr("stroke-width", 0).attr("stroke", "red").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1] + 1;
+      }));
+
+      this.arealeft.datum(larea).transition().duration(1000).attr("fill", "green").attr("stroke-width", 0).attr("stroke", "red").attr("d", d3.area().x(function (d) {
+        return d[0];
+      }).y0(y(0)).y1(function (d) {
+        return d[1] + 1;
+      }));
+
+      this.xbarline.transition().duration(1000).attr("x1", x(props.xbar)).attr("y1", 0).attr("x2", x(props.xbar)).attr("y2", height).style("stroke-width", 2).style("stroke", "red").style("fill", "none");
+
+      this.xbarlabel.transition().duration(1000).attr("x", x(props.xbar) - 35);
+
+      var pvalue = normalcdf((props.xbar - props.mean) / std);
+
+      if (props.side === "right") {
+        var text = "P-Value: " + (1 - pvalue).toFixed(3);
+        if (1 - pvalue <= Number(props.alpha)) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      } else if (props.side === "left") {
+        var text = "P-Value: " + pvalue.toFixed(3);
+        if (pvalue <= Number(props.alpha)) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      } else {
+        if (pvalue > .5) {
+          var text = "P-Value: " + (1 - pvalue).toFixed(3);
+        } else {
+          var text = "P-Value: " + pvalue.toFixed(3);
+        }
+        if (pvalue <= Number(props.alpha) / 2 || 1 - pvalue <= Number(props.alpha) / 2) {
+          text += " - We reject the null.";
+        } else {
+          text += " - We fail to reject the null.";
+        }
+      }
+
+      this.result.transition().duration(1000).text(text);
     }
   }]);
 
   return HypTest;
 }(D3Component);
+
+//https://stackoverflow.com/questions/8816729/javascript-equivalent-for-inverse-normal-function-eg-excels-normsinv-or-nor
+
+
+function NormSInv(p) {
+  var a1 = -39.6968302866538,
+      a2 = 220.946098424521,
+      a3 = -275.928510446969;
+  var a4 = 138.357751867269,
+      a5 = -30.6647980661472,
+      a6 = 2.50662827745924;
+  var b1 = -54.4760987982241,
+      b2 = 161.585836858041,
+      b3 = -155.698979859887;
+  var b4 = 66.8013118877197,
+      b5 = -13.2806815528857,
+      c1 = -7.78489400243029E-03;
+  var c2 = -0.322396458041136,
+      c3 = -2.40075827716184,
+      c4 = -2.54973253934373;
+  var c5 = 4.37466414146497,
+      c6 = 2.93816398269878,
+      d1 = 7.78469570904146E-03;
+  var d2 = 0.32246712907004,
+      d3 = 2.445134137143,
+      d4 = 3.75440866190742;
+  var p_low = 0.02425,
+      p_high = 1 - p_low;
+  var q, r;
+  var retVal;
+
+  if (p < 0 || p > 1) {
+    alert("NormSInv: Argument out of range.");
+    retVal = 0;
+  } else if (p < p_low) {
+    q = Math.sqrt(-2 * Math.log(p));
+    retVal = (((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+  } else if (p <= p_high) {
+    q = p - 0.5;
+    r = q * q;
+    retVal = (((((a1 * r + a2) * r + a3) * r + a4) * r + a5) * r + a6) * q / (((((b1 * r + b2) * r + b3) * r + b4) * r + b5) * r + 1);
+  } else {
+    q = Math.sqrt(-2 * Math.log(1 - p));
+    retVal = -(((((c1 * q + c2) * q + c3) * q + c4) * q + c5) * q + c6) / ((((d1 * q + d2) * q + d3) * q + d4) * q + 1);
+  }
+
+  return -1 * retVal;
+}
+
+// https://www.math.ucla.edu/~tom/distributions/normal.html?
+function normalcdf(X) {
+  //HASTINGS.  MAX ERROR = .000001
+  var T = 1 / (1 + .2316419 * Math.abs(X));
+  var D = .3989423 * Math.exp(-X * X / 2);
+  var Prob = D * T * (.3193815 + T * (-.3565638 + T * (1.781478 + T * (-1.821256 + T * 1.330274))));
+  if (X > 0) {
+    Prob = 1 - Prob;
+  }
+  return Prob;
+}
 
 function pdf(x, props) {
   var std = props.sigma / sqrt(props.nsamples);
@@ -679,6 +1263,112 @@ var CoinRigged = function (_React$Component) {
 
 module.exports = CoinRigged;
 
+},{"react":"react"}],"/Users/ShuHan/Downloads/396final/components/disease.js":[function(require,module,exports){
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var React = require('react');
+
+var Disease = function (_React$Component) {
+  _inherits(Disease, _React$Component);
+
+  function Disease() {
+    _classCallCheck(this, Disease);
+
+    return _possibleConstructorReturn(this, (Disease.__proto__ || Object.getPrototypeOf(Disease)).apply(this, arguments));
+  }
+
+  _createClass(Disease, [{
+    key: 'render',
+    value: function render() {
+      var _props = this.props,
+          hasError = _props.hasError,
+          idyll = _props.idyll,
+          updateProps = _props.updateProps,
+          props = _objectWithoutProperties(_props, ['hasError', 'idyll', 'updateProps']);
+
+      return React.createElement(
+        'div',
+        { style: { width: '600px', textAlign: 'center' } },
+        React.createElement(
+          'table',
+          null,
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Medical Screening'
+            ),
+            React.createElement(
+              'th',
+              null,
+              'Negative'
+            ),
+            React.createElement(
+              'th',
+              null,
+              'Positive'
+            )
+          ),
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Null (Person does not have condition)'
+            ),
+            React.createElement(
+              'td',
+              null,
+              'Person does not have condition'
+            ),
+            React.createElement(
+              'td',
+              { style: { backgroundColor: "rgba(255, 0, 0, 0.3)" } },
+              'Type I: Incorrect positive result'
+            )
+          ),
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Alternative (Person has condition)'
+            ),
+            React.createElement(
+              'td',
+              { style: { backgroundColor: "rgba(255, 0, 0, 0.3)" } },
+              'Type II: Condition undectected'
+            ),
+            React.createElement(
+              'td',
+              null,
+              'Condition identified'
+            )
+          )
+        )
+      );
+    }
+  }]);
+
+  return Disease;
+}(React.Component);
+
+module.exports = Disease;
+
 },{"react":"react"}],"/Users/ShuHan/Downloads/396final/components/guess1.js":[function(require,module,exports){
 'use strict';
 
@@ -886,6 +1576,112 @@ var Guess2 = function (_React$Component) {
 }(React.Component);
 
 module.exports = Guess2;
+
+},{"react":"react"}],"/Users/ShuHan/Downloads/396final/components/trial.js":[function(require,module,exports){
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var React = require('react');
+
+var Trial = function (_React$Component) {
+  _inherits(Trial, _React$Component);
+
+  function Trial() {
+    _classCallCheck(this, Trial);
+
+    return _possibleConstructorReturn(this, (Trial.__proto__ || Object.getPrototypeOf(Trial)).apply(this, arguments));
+  }
+
+  _createClass(Trial, [{
+    key: 'render',
+    value: function render() {
+      var _props = this.props,
+          hasError = _props.hasError,
+          idyll = _props.idyll,
+          updateProps = _props.updateProps,
+          props = _objectWithoutProperties(_props, ['hasError', 'idyll', 'updateProps']);
+
+      return React.createElement(
+        'div',
+        { style: { width: '600px', textAlign: 'center' } },
+        React.createElement(
+          'table',
+          null,
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Criminal Trial'
+            ),
+            React.createElement(
+              'th',
+              null,
+              'Innocent'
+            ),
+            React.createElement(
+              'th',
+              null,
+              'Guilty'
+            )
+          ),
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Null (Person is Innocent)'
+            ),
+            React.createElement(
+              'td',
+              null,
+              'Person is actually innocent'
+            ),
+            React.createElement(
+              'td',
+              { style: { backgroundColor: "rgba(255, 0, 0, 0.3)" } },
+              'Type I: Wrongful conviction'
+            )
+          ),
+          React.createElement(
+            'tr',
+            null,
+            React.createElement(
+              'th',
+              null,
+              'Alternative (Person is Guilty)'
+            ),
+            React.createElement(
+              'td',
+              { style: { backgroundColor: "rgba(255, 0, 0, 0.3)" } },
+              'Type II: Guilty person goes free'
+            ),
+            React.createElement(
+              'td',
+              null,
+              'Guilty person charged'
+            )
+          )
+        )
+      );
+    }
+  }]);
+
+  return Trial;
+}(React.Component);
+
+module.exports = Trial;
 
 },{"react":"react"}],"/Users/ShuHan/Downloads/396final/node_modules/acorn/dist/acorn.js":[function(require,module,exports){
 (function (global, factory) {
@@ -40705,7 +41501,54 @@ module.exports = {
     return input.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   }
 };
-},{}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js":[function(require,module,exports){
+},{}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/aside.js":[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Aside = function (_React$PureComponent) {
+  _inherits(Aside, _React$PureComponent);
+
+  function Aside() {
+    _classCallCheck(this, Aside);
+
+    return _possibleConstructorReturn(this, _React$PureComponent.apply(this, arguments));
+  }
+
+  Aside.prototype.render = function render() {
+    return _react2.default.createElement(
+      'span',
+      { className: 'aside-container' },
+      _react2.default.createElement(
+        'span',
+        { className: 'aside' },
+        this.props.children
+      )
+    );
+  };
+
+  return Aside;
+}(_react2.default.PureComponent);
+
+Aside._idyll = {
+  name: 'Aside',
+  tagType: 'open'
+};
+
+exports.default = Aside;
+},{"react":"react"}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js":[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -41318,6 +42161,162 @@ Inline._idyll = {
 };
 
 exports.default = Inline;
+},{"react":"react"}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/link.js":[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Link = function (_React$PureComponent) {
+  _inherits(Link, _React$PureComponent);
+
+  function Link(props) {
+    _classCallCheck(this, Link);
+
+    return _possibleConstructorReturn(this, _React$PureComponent.call(this, props));
+  }
+
+  Link.prototype.render = function render() {
+    var _props = this.props,
+        idyll = _props.idyll,
+        hasError = _props.hasError,
+        updateProps = _props.updateProps,
+        props = _objectWithoutProperties(_props, ['idyll', 'hasError', 'updateProps']);
+
+    var passProps = _extends({}, props);
+    if (passProps.url) {
+      passProps.href = passProps.url;
+    }
+    return _react2.default.createElement(
+      'a',
+      passProps,
+      props.text || props.children
+    );
+  };
+
+  return Link;
+}(_react2.default.PureComponent);
+
+Link._idyll = {
+  name: 'Link',
+  tagType: 'closed',
+  displayType: 'inline',
+  props: [{
+    name: 'text',
+    type: 'string',
+    example: '"Link Text"',
+    description: 'The text to display'
+  }, {
+    name: 'url',
+    type: 'string',
+    example: '"https://some.url/"',
+    description: 'The URL to open when the link is clicked'
+  }]
+};
+
+exports.default = Link;
+},{"react":"react"}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/range.js":[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _react = require('react');
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Range = function (_React$PureComponent) {
+  _inherits(Range, _React$PureComponent);
+
+  function Range(props) {
+    _classCallCheck(this, Range);
+
+    return _possibleConstructorReturn(this, _React$PureComponent.call(this, props));
+  }
+
+  Range.prototype.handleChange = function handleChange(event) {
+    this.props.updateProps({
+      value: +event.target.value
+    });
+  };
+
+  Range.prototype.render = function render() {
+    var _props = this.props,
+        value = _props.value,
+        min = _props.min,
+        max = _props.max,
+        step = _props.step;
+
+    return _react2.default.createElement('input', {
+      type: 'range',
+      onChange: this.handleChange.bind(this),
+      value: value,
+      min: min,
+      max: max,
+      step: step
+    });
+  };
+
+  return Range;
+}(_react2.default.PureComponent);
+
+Range.defaultProps = {
+  value: 0,
+  min: 0,
+  max: 1,
+  step: 1
+};
+
+Range._idyll = {
+  name: 'Range',
+  tagType: 'closed',
+  props: [{
+    name: 'value',
+    type: 'number',
+    example: 'x',
+    description: 'The value to display; if this is a variable, the variable will automatically be updated when the slider is moved.'
+  }, {
+    name: 'min',
+    type: 'number',
+    example: '0',
+    description: 'The minimum value.'
+  }, {
+    name: 'max',
+    type: 'number',
+    example: '100',
+    description: 'The maximum value.'
+  }, {
+    name: 'step',
+    type: 'number',
+    example: '1',
+    defaultValue: '1',
+    description: 'The granularity of the slider.'
+  }]
+};
+
+exports.default = Range;
 },{"react":"react"}],"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js":[function(require,module,exports){
 'use strict';
 
@@ -107519,7 +108518,7 @@ function extend() {
 },{}],"__IDYLL_AST__":[function(require,module,exports){
 "use strict";
 
-module.exports = { "id": 0, "type": "component", "name": "div", "children": [{ "id": 2, "type": "var", "properties": { "name": { "type": "value", "value": "state" }, "value": { "type": "value", "value": 0 } } }, { "id": 3, "type": "var", "properties": { "name": { "type": "value", "value": "sample" }, "value": { "type": "value", "value": 50 } } }, { "id": 4, "type": "var", "properties": { "name": { "type": "value", "value": "mu" }, "value": { "type": "value", "value": 0 } } }, { "id": 5, "type": "var", "properties": { "name": { "type": "value", "value": "sigma" }, "value": { "type": "value", "value": 1 } } }, { "id": 6, "type": "var", "properties": { "name": { "type": "value", "value": "x" }, "value": { "type": "value", "value": 0 } } }, { "id": 7, "type": "var", "properties": { "name": { "type": "value", "value": "n" }, "value": { "type": "value", "value": 30 } } }, { "id": 8, "type": "var", "properties": { "name": { "type": "value", "value": "alpha" }, "value": { "type": "value", "value": 0.05 } } }, { "id": 9, "type": "var", "properties": { "name": { "type": "value", "value": "side" }, "value": { "type": "value", "value": "right" } } }, { "id": 10, "type": "component", "name": "TextContainer", "children": [{ "id": 11, "type": "meta", "properties": { "title": { "type": "value", "value": "396final" }, "description": { "type": "value", "value": "Explorable Explanation of Type I and Type II error" } } }] }, { "id": 12, "type": "component", "name": "Header", "properties": { "title": { "type": "value", "value": "How Sure Are You?" }, "subtitle": { "type": "value", "value": "A look into statistical hypothesis testing" }, "author": { "type": "value", "value": "Shu Han" }, "authorLink": { "type": "value", "value": "https://idyll-lang.org" }, "date": { "type": "expression", "value": "(new Date()).toDateString()" }, "background": { "type": "value", "value": "#222222" }, "color": { "type": "value", "value": "#ffffff" } }, "children": [] }, { "id": 13, "type": "component", "name": "TextContainer", "children": [{ "id": 14, "type": "component", "name": "h2", "children": [{ "id": 15, "type": "textnode", "value": "Introduction" }] }, { "id": 16, "type": "component", "name": "p", "children": [{ "id": 17, "type": "textnode", "value": "Lets play a guessing game! Below are two coins. One is a fair\ncoin that will land red or black with equal chance. The other\nis a weighted coin that will land one color 75% of the time\nand the other only 25% of the time." }] }, { "id": 18, "type": "component", "name": "p", "children": [{ "id": 19, "type": "textnode", "value": "Click on the button under the coins to flip them. A counter is included so you dont\nhave to worry about tracking the results yourself. When you feel\nconfident you know which coin is the weighted one, click on your guess\nto find out if you were right! (if you don’t want to wait for the animation\nfeel free to spam the button)" }] }, { "id": 20, "type": "component", "name": "div", "children": [{ "id": 21, "type": "component", "name": "inline", "children": [{ "id": 22, "type": "component", "name": "Coin", "children": [] }] }, { "id": 23, "type": "component", "name": "inline", "children": [{ "id": 24, "type": "component", "name": "CoinRigged", "children": [] }] }] }, { "id": 25, "type": "component", "name": "h2", "children": [{ "id": 26, "type": "textnode", "value": "Ready to Guess?" }] }, { "id": 27, "type": "component", "name": "Guess1", "children": [] }, { "id": 28, "type": "component", "name": "h1", "children": [{ "id": 29, "type": "textnode", "value": "Lets Try Another Game" }] }, { "id": 30, "type": "component", "name": "p", "children": [{ "id": 31, "type": "textnode", "value": "Here we only have one coin. It is either a normal fair coin, or\na weighted one that will land on one color 55% of the time and\nthe other only 45% of the time. Flip the coin until you feel confident\nthat you know if it is fair or not, and click on your guess! (note that\nthis time there is a flip 10x button to save you some time)" }] }, { "id": 32, "type": "component", "name": "Coin3", "children": [] }, { "id": 33, "type": "component", "name": "h2", "children": [{ "id": 34, "type": "textnode", "value": "Ready to Guess?" }] }, { "id": 35, "type": "component", "name": "Guess2", "children": [] }, { "id": 36, "type": "component", "name": "h1", "children": [{ "id": 37, "type": "textnode", "value": "How Sure Were You?" }] }, { "id": 38, "type": "component", "name": "p", "children": [{ "id": 39, "type": "textnode", "value": "We knew the expected probabilities of all three coins shown in the guessing\ngames you just played. However, it is very unlikely that as you flipped\nthe results lined up exactly with how the probabilities were set up. Why?\nBecause of random chance." }] }, { "id": 40, "type": "component", "name": "h2", "children": [{ "id": 41, "type": "textnode", "value": "Probability Distributions and the Issue with Random Chance" }] }, { "id": 42, "type": "component", "name": "p", "children": [{ "id": 43, "type": "textnode", "value": "In statistics, probability distributions are mathimatical functions which describe\nthe probability of different outcomes of an experiment. Take our first coin example;\nthe two possible outcomes are the two sides and the probability of each side\non any given flip is set - 50% for the fair coin and 75% for the weighted one." }] }, { "id": 44, "type": "component", "name": "p", "children": [{ "id": 45, "type": "textnode", "value": "However, this probability of results gets in the way of accurately understanding\nreal world data. It was likely that at most points of your experiment with the\nsecond coin game that the number of blue and purple results were not the same.\nBut how do you know if it was due to it being weighted, or to simple chance?" }] }, { "id": 46, "type": "component", "name": "h2", "children": [{ "id": 47, "type": "textnode", "value": "The Central Limit Theorem and a Return to Normalcy" }] }, { "id": 48, "type": "component", "name": "p", "children": [{ "id": 49, "type": "textnode", "value": "One way of getting past the uncertainty randomness creates is by increasing the sample size." }] }, { "id": 50, "type": "component", "name": "p", "children": [{ "id": 51, "type": "textnode", "value": "The graph below shows a random sample of a normal distribution, with a mean of 0 and\na standard deviation of 1. Each sample is randomly generated using the probability equation,\nand the histogram shows the results. The line shows the true distribution. Click the re-sample\nbutton to see how random sampling results in different data, and notice how the\ndistribution gets closer to the expected true distribution as the sample size increases" }] }, { "id": 52, "type": "component", "name": "Distributions", "properties": { "state": { "type": "variable", "value": "state" }, "samplesize": { "type": "variable", "value": "sample" } }, "children": [] }, { "id": 53, "type": "component", "name": "div", "children": [{ "id": 54, "type": "component", "name": "Float", "properties": { "position": { "type": "value", "value": "left" } }, "children": [{ "id": 55, "type": "component", "name": "button", "properties": { "onClick": { "type": "expression", "value": "state++" } }, "children": [{ "id": 56, "type": "textnode", "value": "Re-Sample" }] }] }, { "id": 57, "type": "textnode", "value": "\nSample Size: " }, { "id": 58, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "sample" } }, "children": [] }] }, { "id": 59, "type": "component", "name": "p", "children": [{ "id": 60, "type": "textnode", "value": "The normal distribution is one of many different distributions out there. In fact,\nwith real world data and experiments, there is no mathimatical model that fits\nthe data perfectly. So how do we find the true value of data? How do we know if the coin\nis truly weighted?" }] }, { "id": 61, "type": "component", "name": "p", "children": [{ "id": 62, "type": "textnode", "value": "Well, we can’t. Not with 100% certainty anyways. But we can make a good guess if\nwe design a good experiment. Thats where the Central Limit Theorem comes in!\nWolfram MathWorld defines the Central Limit Theorem as:" }] }, { "id": 63, "type": "component", "name": "em", "children": [{ "id": 64, "type": "textnode", "value": "Let " }, { "id": 65, "type": "component", "name": "equation", "children": [{ "id": 66, "type": "textnode", "value": "X_1,X_2,...,X_N" }] }, { "id": 67, "type": "textnode", "value": " be a set of N independent random variates and each " }, { "id": 68, "type": "component", "name": "equation", "children": [{ "id": 69, "type": "textnode", "value": "X_i" }] }, { "id": 70, "type": "textnode", "value": " have an arbitrary probability distribution " }, { "id": 71, "type": "component", "name": "equation", "children": [{ "id": 72, "type": "textnode", "value": "P(x_1,...,x_N)" }] }, { "id": 73, "type": "textnode", "value": " with mean " }, { "id": 74, "type": "component", "name": "equation", "children": [{ "id": 75, "type": "textnode", "value": "\\mu_i" }] }, { "id": 76, "type": "textnode", "value": " and a finite variance " }, { "id": 77, "type": "component", "name": "equation", "children": [{ "id": 78, "type": "textnode", "value": "\\sigma_i^2" }] }, { "id": 79, "type": "textnode", "value": ". Then the normal form variate has a limiting cumulative distribution function which approaches a normal distribution." }] }, { "id": 80, "type": "component", "name": "h2", "children": [{ "id": 81, "type": "textnode", "value": "In Simpler Terms Please..." }] }, { "id": 82, "type": "component", "name": "p", "children": [{ "id": 83, "type": "textnode", "value": "Wow, thats a mouthful. There’s variables, greek letters, and a lot of big words. To\nexplain it more simply so we can get to discussing error types, what the CLT basically\ntells us is this: For anything we take independent samples of, as long as we take\nenough samples (usually meaning over 30), the mean of these samples has an\napproximately normal distribution and approaches the true mean of the population.\nBy taking advantage of this fact, we can predict the true characteristics of the\npopulation without needing to know or model the true population." }] }, { "id": 84, "type": "component", "name": "h2", "children": [{ "id": 85, "type": "textnode", "value": "So Sampling Enough Times Answers Everything?" }] }, { "id": 86, "type": "component", "name": "p", "children": [{ "id": 87, "type": "textnode", "value": "Nope. Unfortunately, randomness still gets in the way. Even if we take an infinite number\nof samples, it will still be a normal distribution, which goes to infinity. Unfortunately,\nstatistics in the real world, like most things, is never certain. Furthermore, testing\nis often expensive and sample sizes are often limited due to resources. The best we can do is\nhedge our prediction. That is where hypothesis testing comes in!\n\n" }] }, { "id": 88, "type": "component", "name": "h1", "children": [{ "id": 89, "type": "textnode", "value": "Hypothesis Testing" }] }, { "id": 90, "type": "component", "name": "p", "children": [{ "id": 91, "type": "textnode", "value": "Statistical hypothesis testing is a system that uses the CLT to “reject” or “fail to reject”\na null hypothesis. A null hypothesis is the assumption that nothing is different, or that\nthe result is not statisticly significant from the accepted population. For\nexample, the null for the coin games was that the coin was fair. The null for a new\nmedicine would be that it does not do anything. As we learned above, after sampling a population\nthe sample mean is a normally distributed variable. The CLT also tells us that the sample\nmean approaches the true mean, with a standard deviation of " }, { "id": 92, "type": "component", "name": "equation", "children": [{ "id": 93, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 94, "type": "textnode", "value": "\nwhere n is the sample size and and " }, { "id": 95, "type": "component", "name": "equation", "children": [{ "id": 96, "type": "textnode", "value": "\\sigma" }] }, { "id": 97, "type": "textnode", "value": " is the population standard deviation.\nThus, we now have a distribution for the null hypothesis; a normal distribution where\nthe mean is the population mean and the standard deviation is " }, { "id": 98, "type": "component", "name": "equation", "children": [{ "id": 99, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 100, "type": "textnode", "value": "." }] }, { "id": 101, "type": "component", "name": "h2", "children": [{ "id": 102, "type": "textnode", "value": "P-Values and Confidence" }] }, { "id": 103, "type": "component", "name": "p", "children": [{ "id": 104, "type": "textnode", "value": "This distribution tells us the expected results of the null hypothesis. Now, given this\nand the sample mean we found through our experiment, we need to interpret the result.\nWe do this with the p-value. This is compared to the significance level, usually represented\nby " }, { "id": 105, "type": "component", "name": "equation", "children": [{ "id": 106, "type": "textnode", "value": "\\alpha" }] }, { "id": 107, "type": "textnode", "value": " that we determine beforehand. This level describes the threshold\nwhere we determine our sample mean is significant and we reject the null hypothesis.\nThe p-value can be thought of as the probability of the results we got given the\nnull hypothesis. It allows us to reasonably look at the result we got given the distribution of expected results.\nIf the p-value is less than alpha, we reject the null at a confidence level of 1-alpha.\nIf it is not less than alpha we fail to reject the null." }] }, { "id": 108, "type": "component", "name": "p", "children": [{ "id": 109, "type": "textnode", "value": "Note the language here; we always give a confidence level, and if the p-value is not\nless than alpha we fail to reject the null instead of accepting it. This is because\nthe p-value is a probability. For example, if we set alpha to 0.05, we would reject\nthe null if we got a p-value of 0.03. However, 0.03 means that there is a 3% chance\nwe saw this sample mean given the population mean and standard deviation. Similarly,\nif we got a p-value is 0.07, we would fail to reject the null because it is not past\nthe threshold we set of 0.05, but we cannot accept the null as we do not have evidence\nthat it is true, we just don’t have enough that it is false." }] }, { "id": 110, "type": "component", "name": "p", "children": [{ "id": 111, "type": "textnode", "value": "Play around with the graph below to see how the different inputs affect the result\nof a hypothesis test. Note that changing the population mean and standard deviation\nhas no effect on the shape of the curve; the normal distribution of the expected\nresults do not change." }] }, { "id": 112, "type": "component", "name": "div", "children": [{ "id": 113, "type": "component", "name": "HypTest", "properties": { "mean": { "type": "variable", "value": "mu" }, "sigma": { "type": "variable", "value": "sigma" }, "xbar": { "type": "variable", "value": "x" }, "nsamples": { "type": "variable", "value": "n" }, "alpha": { "type": "variable", "value": "alpha" }, "side": { "type": "variable", "value": "side" } }, "children": [] }, { "id": 114, "type": "component", "name": "p", "children": [{ "id": 115, "type": "component", "name": "equation", "children": [{ "id": 116, "type": "textnode", "value": "\\mu" }] }, { "id": 117, "type": "textnode", "value": ": " }, { "id": 118, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "mu" } }, "children": [] }, { "id": 119, "type": "component", "name": "equation", "children": [{ "id": 120, "type": "textnode", "value": "\\sigma" }] }, { "id": 121, "type": "textnode", "value": ": " }, { "id": 122, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "sigma" } }, "children": [] }] }, { "id": 123, "type": "component", "name": "p", "children": [{ "id": 124, "type": "component", "name": "equation", "children": [{ "id": 125, "type": "textnode", "value": "\\bar{x}" }] }, { "id": 126, "type": "textnode", "value": ": " }, { "id": 127, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "x" } }, "children": [] }, { "id": 128, "type": "textnode", "value": "\nn: " }, { "id": 129, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "n" } }, "children": [] }] }, { "id": 130, "type": "component", "name": "p", "children": [{ "id": 131, "type": "component", "name": "equation", "children": [{ "id": 132, "type": "textnode", "value": "\\alpha" }] }, { "id": 133, "type": "textnode", "value": ": " }, { "id": 134, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "alpha" } }, "children": [] }, { "id": 135, "type": "textnode", "value": "\nSide: " }, { "id": 136, "type": "component", "name": "Select", "properties": { "value": { "type": "variable", "value": "side" }, "options": { "type": "expression", "value": "[\"left\", \"right\", \"two-sided\"]" } }, "children": [] }] }] }] }] };
+module.exports = { "id": 0, "type": "component", "name": "div", "children": [{ "id": 2, "type": "var", "properties": { "name": { "type": "value", "value": "state" }, "value": { "type": "value", "value": 0 } } }, { "id": 3, "type": "var", "properties": { "name": { "type": "value", "value": "sample" }, "value": { "type": "value", "value": 50 } } }, { "id": 4, "type": "var", "properties": { "name": { "type": "value", "value": "mu" }, "value": { "type": "value", "value": 0 } } }, { "id": 5, "type": "var", "properties": { "name": { "type": "value", "value": "sigma" }, "value": { "type": "value", "value": 1 } } }, { "id": 6, "type": "var", "properties": { "name": { "type": "value", "value": "x" }, "value": { "type": "value", "value": 0 } } }, { "id": 7, "type": "var", "properties": { "name": { "type": "value", "value": "n" }, "value": { "type": "value", "value": 30 } } }, { "id": 8, "type": "var", "properties": { "name": { "type": "value", "value": "alpha" }, "value": { "type": "value", "value": 0.05 } } }, { "id": 9, "type": "var", "properties": { "name": { "type": "value", "value": "side" }, "value": { "type": "value", "value": "right" } } }, { "id": 10, "type": "var", "properties": { "name": { "type": "value", "value": "muo" }, "value": { "type": "value", "value": 0 } } }, { "id": 11, "type": "var", "properties": { "name": { "type": "value", "value": "stdo" }, "value": { "type": "value", "value": 1 } } }, { "id": 12, "type": "var", "properties": { "name": { "type": "value", "value": "mua" }, "value": { "type": "value", "value": 3 } } }, { "id": 13, "type": "var", "properties": { "name": { "type": "value", "value": "stda" }, "value": { "type": "value", "value": 1 } } }, { "id": 14, "type": "var", "properties": { "name": { "type": "value", "value": "alphaii" }, "value": { "type": "value", "value": 50 } } }, { "id": 15, "type": "component", "name": "TextContainer", "children": [{ "id": 16, "type": "meta", "properties": { "title": { "type": "value", "value": "396final" }, "description": { "type": "value", "value": "Explorable Explanation of Type I and Type II error" } } }] }, { "id": 17, "type": "component", "name": "Header", "properties": { "title": { "type": "value", "value": "How Sure Are You?" }, "subtitle": { "type": "value", "value": "A look into statistical hypothesis testing" }, "author": { "type": "value", "value": "Shu Han" }, "authorLink": { "type": "value", "value": "https://idyll-lang.org" }, "date": { "type": "expression", "value": "(new Date()).toDateString()" }, "background": { "type": "value", "value": "#222222" }, "color": { "type": "value", "value": "#ffffff" } }, "children": [] }, { "id": 18, "type": "component", "name": "TextContainer", "children": [{ "id": 19, "type": "component", "name": "h1", "children": [{ "id": 20, "type": "textnode", "value": "Introduction" }] }, { "id": 21, "type": "component", "name": "p", "children": [{ "id": 22, "type": "textnode", "value": "Lets play a guessing game! Below are two coins. One is a fair\ncoin that will land red or black with equal chance. The other\nis a weighted coin that will land one color 75% of the time\nand the other only 25% of the time." }] }, { "id": 23, "type": "component", "name": "p", "children": [{ "id": 24, "type": "textnode", "value": "Click on the button under the coins to flip them. A counter is included so you dont\nhave to worry about tracking the results yourself. When you feel\nconfident you know which coin is the weighted one, click on your guess\nto find out if you were right! (if you don’t want to wait for the animation\nfeel free to spam the button)" }] }, { "id": 25, "type": "component", "name": "div", "children": [{ "id": 26, "type": "component", "name": "inline", "children": [{ "id": 27, "type": "component", "name": "Coin", "children": [] }] }, { "id": 28, "type": "component", "name": "inline", "children": [{ "id": 29, "type": "component", "name": "CoinRigged", "children": [] }] }] }, { "id": 30, "type": "component", "name": "h2", "children": [{ "id": 31, "type": "textnode", "value": "Ready to Guess?" }] }, { "id": 32, "type": "component", "name": "Guess1", "children": [] }, { "id": 33, "type": "component", "name": "h1", "children": [{ "id": 34, "type": "textnode", "value": "Lets Try Another Game" }] }, { "id": 35, "type": "component", "name": "p", "children": [{ "id": 36, "type": "textnode", "value": "Here we only have one coin. It is either a normal fair coin, or\na weighted one that will land on blue 55% of the time and\npurple only 45% of the time. Flip the coin until you feel confident\nthat you know if it is fair or not, and click on your guess! (note that\nthis time there is a flip 10x button to save you some time)" }] }, { "id": 37, "type": "component", "name": "Coin3", "children": [] }, { "id": 38, "type": "component", "name": "h2", "children": [{ "id": 39, "type": "textnode", "value": "Ready to Guess?" }] }, { "id": 40, "type": "component", "name": "Guess2", "children": [] }, { "id": 41, "type": "component", "name": "h1", "children": [{ "id": 42, "type": "textnode", "value": "How Sure Were You?" }] }, { "id": 43, "type": "component", "name": "p", "children": [{ "id": 44, "type": "textnode", "value": "We knew the expected probabilities of all three coins shown in the guessing\ngames you just played. However, it is very unlikely that as you flipped\nthe results lined up exactly with how the probabilities were set up. Why?\nBecause of random chance." }] }, { "id": 45, "type": "component", "name": "h2", "children": [{ "id": 46, "type": "textnode", "value": "Probability Distributions and the Issue with Random Chance" }] }, { "id": 47, "type": "component", "name": "p", "children": [{ "id": 48, "type": "textnode", "value": "In statistics, probability distributions are mathimatical functions which describe\nthe probability of different outcomes of an experiment. Take our first coin example;\nthe two possible outcomes are the two sides and the probability of each side\non any given flip is set - 50% for the fair coin and 75% for the weighted one." }] }, { "id": 49, "type": "component", "name": "p", "children": [{ "id": 50, "type": "textnode", "value": "However, this probability of results gets in the way of accurately understanding\nreal world data. It was likely that at most points of your experiment with the\nsecond coin game that the number of blue and purple results were not the same.\nBut how do you know if it was due to it being weighted, or to simple chance?" }] }, { "id": 51, "type": "component", "name": "h2", "children": [{ "id": 52, "type": "textnode", "value": "The Central Limit Theorem and a Return to Normalcy" }] }, { "id": 53, "type": "component", "name": "p", "children": [{ "id": 54, "type": "textnode", "value": "One way of getting past the uncertainty randomness creates is by increasing the sample size." }] }, { "id": 55, "type": "component", "name": "p", "children": [{ "id": 56, "type": "textnode", "value": "The graph below shows a random sample of a normal distribution, with a mean of 0 and\na standard deviation of 1. Each sample is randomly generated using the probability equation,\nand the histogram shows the results. The line shows the true distribution. Click the re-sample\nbutton to see how random sampling results in different data, and notice how the\ndistribution gets closer to the expected true distribution as the sample size increases" }] }, { "id": 57, "type": "component", "name": "Distributions", "properties": { "state": { "type": "variable", "value": "state" }, "samplesize": { "type": "variable", "value": "sample" } }, "children": [] }, { "id": 58, "type": "component", "name": "div", "children": [{ "id": 59, "type": "component", "name": "Float", "properties": { "position": { "type": "value", "value": "left" } }, "children": [{ "id": 60, "type": "component", "name": "button", "properties": { "onClick": { "type": "expression", "value": "state++" } }, "children": [{ "id": 61, "type": "textnode", "value": "Re-Sample" }] }] }, { "id": 62, "type": "textnode", "value": "\nSample Size: " }, { "id": 63, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "sample" } }, "children": [] }] }, { "id": 64, "type": "component", "name": "p", "children": [{ "id": 65, "type": "textnode", "value": "The normal distribution is one of many different distributions out there. In fact,\nwith real world data and experiments, there is no mathimatical model that fits\nthe data perfectly. So how do we find the true value of data? How do we know if the coin\nis truly weighted?" }] }, { "id": 66, "type": "component", "name": "p", "children": [{ "id": 67, "type": "textnode", "value": "Well, we can’t. Not with 100% certainty anyways. But we can make a good guess if\nwe design a good experiment. Thats where the Central Limit Theorem comes in!\nWolfram MathWorld defines the Central Limit Theorem as:" }] }, { "id": 68, "type": "component", "name": "em", "children": [{ "id": 69, "type": "textnode", "value": "Let " }, { "id": 70, "type": "component", "name": "equation", "children": [{ "id": 71, "type": "textnode", "value": "X_1,X_2,...,X_N" }] }, { "id": 72, "type": "textnode", "value": " be a set of N independent random variates and each " }, { "id": 73, "type": "component", "name": "equation", "children": [{ "id": 74, "type": "textnode", "value": "X_i" }] }, { "id": 75, "type": "textnode", "value": " have an arbitrary probability distribution " }, { "id": 76, "type": "component", "name": "equation", "children": [{ "id": 77, "type": "textnode", "value": "P(x_1,...,x_N)" }] }, { "id": 78, "type": "textnode", "value": " with mean " }, { "id": 79, "type": "component", "name": "equation", "children": [{ "id": 80, "type": "textnode", "value": "\\mu_i" }] }, { "id": 81, "type": "textnode", "value": " and a finite variance " }, { "id": 82, "type": "component", "name": "equation", "children": [{ "id": 83, "type": "textnode", "value": "\\sigma_i^2" }] }, { "id": 84, "type": "textnode", "value": ". Then the normal form variate has a limiting cumulative distribution function which approaches a normal distribution." }] }, { "id": 85, "type": "component", "name": "h2", "children": [{ "id": 86, "type": "textnode", "value": "In Simpler Terms Please..." }] }, { "id": 87, "type": "component", "name": "p", "children": [{ "id": 88, "type": "textnode", "value": "Wow, thats a mouthful. There’s variables, greek letters, and a lot of big words. To\nexplain it more simply so we can get to discussing error types, what the CLT basically\ntells us is this: For anything we take independent samples of, as long as we take\nenough samples (usually meaning over 30), the the sample mean approaches the true mean, with\na standard deviation of " }, { "id": 89, "type": "component", "name": "equation", "children": [{ "id": 90, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 91, "type": "textnode", "value": " where n is\nthe sample size and and " }, { "id": 92, "type": "component", "name": "equation", "children": [{ "id": 93, "type": "textnode", "value": "\\sigma" }] }, { "id": 94, "type": "textnode", "value": " is the population standard deviation.\nBy taking advantage of this fact, we can predict the true characteristics of the\npopulation without needing to know or model the true population." }] }, { "id": 95, "type": "component", "name": "h2", "children": [{ "id": 96, "type": "textnode", "value": "So Sampling Enough Times Answers Everything?" }] }, { "id": 97, "type": "component", "name": "p", "children": [{ "id": 98, "type": "textnode", "value": "Nope. Unfortunately, randomness still gets in the way. Even if we take an infinite number\nof samples, it will still be a normal distribution, which goes to infinity. Unfortunately,\nstatistics in the real world, like most things, is never certain. Furthermore, testing\nis often expensive and sample sizes are often limited due to resources. The best we can do is\nhedge our prediction. That is where hypothesis testing comes in!\n\n" }] }, { "id": 99, "type": "component", "name": "h1", "children": [{ "id": 100, "type": "textnode", "value": "Hypothesis Testing" }] }, { "id": 101, "type": "component", "name": "p", "children": [{ "id": 102, "type": "textnode", "value": "In this explorable explanation we will be focusing on how a Z-test hypothesis test works." }] }, { "id": 103, "type": "component", "name": "p", "children": [{ "id": 104, "type": "textnode", "value": "A Z-test is a type of statistical hypothesis test that uses the CLT to “reject” or “fail to reject”\na null hypothesis (" }, { "id": 105, "type": "component", "name": "equation", "children": [{ "id": 106, "type": "textnode", "value": "H_o" }] }, { "id": 107, "type": "textnode", "value": "). A null hypothesis is the assumption that nothing is different, or that\nthe result is not statisticly significant from the accepted population. For\nexample, the null for the coin games was that the coin was fair. The null for a new\nmedicine would be that it does not do anything." }] }, { "id": 108, "type": "component", "name": "p", "children": [{ "id": 109, "type": "textnode", "value": "The alternative hypothesis (" }, { "id": 110, "type": "component", "name": "equation", "children": [{ "id": 111, "type": "textnode", "value": "H_a" }] }, { "id": 112, "type": "textnode", "value": ") is contrary to the null hypothesis. It is the effect we are looking\nfor in the test. For example, in the second coin game, the alternative hypothesis is that the probability\nof each possible result is not 1/2. The alternative hypothesis can either be right sided\n(" }, { "id": 113, "type": "component", "name": "equation", "children": [{ "id": 114, "type": "textnode", "value": "H_o < H_a" }] }, { "id": 115, "type": "textnode", "value": "), left sided (" }, { "id": 116, "type": "component", "name": "equation", "children": [{ "id": 117, "type": "textnode", "value": "H_o > H_a" }] }, { "id": 118, "type": "textnode", "value": "), or\ntwo sided (" }, { "id": 119, "type": "component", "name": "equation", "children": [{ "id": 120, "type": "textnode", "value": "H_o <> H_a" }] }, { "id": 121, "type": "textnode", "value": ") depending on the effect we are testing for." }] }, { "id": 122, "type": "component", "name": "h2", "children": [{ "id": 123, "type": "textnode", "value": "P-Values and Confidence" }] }, { "id": 124, "type": "component", "name": "Aside", "children": [{ "id": 125, "type": "textnode", "value": "\nNote the language here; we always give a confidence level, and if the p-value is not\nless than alpha we fail to reject the null instead of accepting it. This is because\nthe p-value is a probability. For example, if we set alpha to 0.05, we would reject\nthe null if we got a p-value of 0.03. However, 0.03 means that there is a 3% chance\nwe saw this sample mean given the population mean and standard deviation. Similarly,\nif we got a p-value of 0.07, we would fail to reject the null because it is not past\nthe threshold we set of 0.05, but we cannot accept the null as we do not have evidence\nthat it is true, we just don’t have enough that it is false." }] }, { "id": 126, "type": "component", "name": "p", "children": [{ "id": 127, "type": "textnode", "value": "With the CLT, we can model the distribution of or sample mean as " }, { "id": 128, "type": "component", "name": "equation", "children": [{ "id": 129, "type": "textnode", "value": "N[\\mu, \\frac{\\sigma}{\\sqrt{n}}]" }] }, { "id": 130, "type": "textnode", "value": ".\nThis distribution tells us the expected results of the null hypothesis. The other components\nof a statistical hypothesis test are the p-value and the significance level (" }, { "id": 131, "type": "component", "name": "equation", "children": [{ "id": 132, "type": "textnode", "value": "\\alpha" }] }, { "id": 133, "type": "textnode", "value": ").\nThe p-value tells us the probability we got the sample mean we observed given the null\ndistribution. We determine " }, { "id": 134, "type": "component", "name": "equation", "children": [{ "id": 135, "type": "textnode", "value": "\\alpha" }] }, { "id": 136, "type": "textnode", "value": " beforehand to decide how robust\nwe want our test to be. If the p-value is less than alpha, we reject the null at a confidence level of 1-alpha.\nIf it is not less than alpha we fail to reject the null." }] }, { "id": 137, "type": "component", "name": "p", "children": [{ "id": 138, "type": "textnode", "value": "Play around with the graph below to see how the different inputs affect the result\nof a hypothesis test. Note that changing the population mean and standard deviation\nhas no effect on the shape of the curve; the normal distribution of the expected\nresults do not change." }] }, { "id": 139, "type": "component", "name": "div", "children": [{ "id": 140, "type": "component", "name": "HypTest", "properties": { "mean": { "type": "variable", "value": "mu" }, "sigma": { "type": "variable", "value": "sigma" }, "xbar": { "type": "variable", "value": "x" }, "nsamples": { "type": "variable", "value": "n" }, "alpha": { "type": "variable", "value": "alpha" }, "side": { "type": "variable", "value": "side" } }, "children": [] }, { "id": 141, "type": "component", "name": "p", "children": [{ "id": 142, "type": "component", "name": "equation", "children": [{ "id": 143, "type": "textnode", "value": "\\mu" }] }, { "id": 144, "type": "textnode", "value": ": " }, { "id": 145, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "mu" } }, "children": [] }, { "id": 146, "type": "component", "name": "equation", "children": [{ "id": 147, "type": "textnode", "value": "\\sigma" }] }, { "id": 148, "type": "textnode", "value": ": " }, { "id": 149, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "sigma" } }, "children": [] }] }, { "id": 150, "type": "component", "name": "p", "children": [{ "id": 151, "type": "component", "name": "equation", "children": [{ "id": 152, "type": "textnode", "value": "\\bar{x}" }] }, { "id": 153, "type": "textnode", "value": ": " }, { "id": 154, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "x" } }, "children": [] }, { "id": 155, "type": "textnode", "value": "\nn: " }, { "id": 156, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "n" } }, "children": [] }] }, { "id": 157, "type": "component", "name": "p", "children": [{ "id": 158, "type": "component", "name": "equation", "children": [{ "id": 159, "type": "textnode", "value": "\\alpha" }] }, { "id": 160, "type": "textnode", "value": ": " }, { "id": 161, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "alpha" } }, "children": [] }, { "id": 162, "type": "textnode", "value": "\nSide: " }, { "id": 163, "type": "component", "name": "Select", "properties": { "value": { "type": "variable", "value": "side" }, "options": { "type": "expression", "value": "[\"left\", \"right\", \"two-sided\"]" } }, "children": [] }] }] }, { "id": 164, "type": "component", "name": "h1", "children": [{ "id": 165, "type": "textnode", "value": "Error" }] }, { "id": 166, "type": "component", "name": "p", "children": [{ "id": 167, "type": "textnode", "value": "As with any statistics that deal with probability, we also have to take\nerror into account. There are two types of error in a hypothesis test; type I\nand type II." }] }, { "id": 168, "type": "component", "name": "h2", "children": [{ "id": 169, "type": "textnode", "value": "Type I Error" }] }, { "id": 170, "type": "component", "name": "p", "children": [{ "id": 171, "type": "textnode", "value": "A type I error occurs when we reject the null hypothesis but it is actually true.\nThis can be thought of as a false positive. The probability of a type I error is " }, { "id": 172, "type": "component", "name": "equation", "children": [{ "id": 173, "type": "textnode", "value": "\\alpha" }] }, { "id": 174, "type": "textnode", "value": ".\nRecall that we set " }, { "id": 175, "type": "component", "name": "equation", "children": [{ "id": 176, "type": "textnode", "value": "\\alpha" }] }, { "id": 177, "type": "textnode", "value": " ourselves. The " }, { "id": 178, "type": "component", "name": "equation", "children": [{ "id": 179, "type": "textnode", "value": "\\alpha" }] }, { "id": 180, "type": "textnode", "value": " value\nwe pick is the risk we are willing to take when we reject the null that the data we saw\nwas due to the variability of the null distribution. This is the same as a type I error." }] }, { "id": 181, "type": "component", "name": "h2", "children": [{ "id": 182, "type": "textnode", "value": "Type II Error" }] }, { "id": 183, "type": "component", "name": "p", "children": [{ "id": 184, "type": "textnode", "value": "A type II error occurs when we fail to reject the null when it is false. This is the\nsame as a false negative. The probability of a type II error is " }, { "id": 185, "type": "component", "name": "equation", "children": [{ "id": 186, "type": "textnode", "value": "\\beta" }] }, { "id": 187, "type": "textnode", "value": " and\ncannot be calculated when the " }, { "id": 188, "type": "component", "name": "equation", "children": [{ "id": 189, "type": "textnode", "value": "H_a" }] }, { "id": 190, "type": "textnode", "value": " is greater than, less than, or\nnot equal to " }, { "id": 191, "type": "component", "name": "equation", "children": [{ "id": 192, "type": "textnode", "value": "H_o" }] }, { "id": 193, "type": "textnode", "value": " like we saw above. However, we can calculate it\nif we have a " }, { "id": 194, "type": "component", "name": "equation", "children": [{ "id": 195, "type": "textnode", "value": "H_a" }] }, { "id": 196, "type": "textnode", "value": " we are testing for." }] }, { "id": 197, "type": "component", "name": "p", "children": [{ "id": 198, "type": "textnode", "value": "The graph below shows the regions for a type I and a type II error. Play around with\nthe " }, { "id": 199, "type": "component", "name": "equation", "children": [{ "id": 200, "type": "textnode", "value": "\\mu" }] }, { "id": 201, "type": "textnode", "value": " and " }, { "id": 202, "type": "component", "name": "equation", "children": [{ "id": 203, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 204, "type": "textnode", "value": " of\nthe " }, { "id": 205, "type": "component", "name": "equation", "children": [{ "id": 206, "type": "textnode", "value": "H_o" }] }, { "id": 207, "type": "textnode", "value": " and " }, { "id": 208, "type": "component", "name": "equation", "children": [{ "id": 209, "type": "textnode", "value": "H_a" }] }, { "id": 210, "type": "textnode", "value": ", and the " }, { "id": 211, "type": "component", "name": "equation", "children": [{ "id": 212, "type": "textnode", "value": "\\alpha" }] }, { "id": 213, "type": "textnode", "value": " value\nto see how the areas of the type I and type II error change." }] }, { "id": 214, "type": "component", "name": "div", "children": [{ "id": 215, "type": "component", "name": "ErrorTest", "properties": { "muo": { "type": "variable", "value": "muo" }, "stdo": { "type": "variable", "value": "stdo" }, "mua": { "type": "variable", "value": "mua" }, "stda": { "type": "variable", "value": "stda" }, "alpha": { "type": "variable", "value": "alphaii" } }, "children": [] }, { "id": 216, "type": "component", "name": "p", "children": [{ "id": 217, "type": "component", "name": "equation", "children": [{ "id": 218, "type": "textnode", "value": "\\alpha" }] }, { "id": 219, "type": "textnode", "value": ": " }, { "id": 220, "type": "component", "name": "Range", "properties": { "value": { "type": "variable", "value": "alphaii" }, "min": { "type": "value", "value": 1 }, "max": { "type": "value", "value": 500 } }, "children": [] }] }, { "id": 221, "type": "component", "name": "p", "children": [{ "id": 222, "type": "component", "name": "equation", "children": [{ "id": 223, "type": "textnode", "value": "H_o" }] }, { "id": 224, "type": "textnode", "value": ": " }, { "id": 225, "type": "component", "name": "equation", "children": [{ "id": 226, "type": "textnode", "value": "\\mu" }] }, { "id": 227, "type": "textnode", "value": ": " }, { "id": 228, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "muo" } }, "children": [] }, { "id": 229, "type": "component", "name": "equation", "children": [{ "id": 230, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 231, "type": "textnode", "value": ": " }, { "id": 232, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "stdo" } }, "children": [] }] }, { "id": 233, "type": "component", "name": "p", "children": [{ "id": 234, "type": "component", "name": "equation", "children": [{ "id": 235, "type": "textnode", "value": "H_a" }] }, { "id": 236, "type": "textnode", "value": ": " }, { "id": 237, "type": "component", "name": "equation", "children": [{ "id": 238, "type": "textnode", "value": "\\mu" }] }, { "id": 239, "type": "textnode", "value": ": " }, { "id": 240, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "mua" } }, "children": [] }, { "id": 241, "type": "component", "name": "equation", "children": [{ "id": 242, "type": "textnode", "value": "\\frac{\\sigma}{\\sqrt{n}}" }] }, { "id": 243, "type": "textnode", "value": ": " }, { "id": 244, "type": "component", "name": "TextInput", "properties": { "value": { "type": "variable", "value": "stda" } }, "children": [] }] }] }, { "id": 245, "type": "component", "name": "h2", "children": [{ "id": 246, "type": "textnode", "value": "Importance of Choosing the Right Significance Level" }] }, { "id": 247, "type": "component", "name": "p", "children": [{ "id": 248, "type": "textnode", "value": "As you can see from the graph above, unless the means of the " }, { "id": 249, "type": "component", "name": "equation", "children": [{ "id": 250, "type": "textnode", "value": "H_o" }] }, { "id": 251, "type": "textnode", "value": " and " }, { "id": 252, "type": "component", "name": "equation", "children": [{ "id": 253, "type": "textnode", "value": "H_a" }] }, { "id": 254, "type": "textnode", "value": " are\nfar apart or their standard deviations are very low (which is unlikely in a real\nworld test), changing the significance level to reduce type I error will always\nincrease the chance of a type II error and vice versa. Thus, we should always keep\nin mind the impact of a false positive vs a false negative and design the test so\nthat the worst case outcome is minimized. Take two real world examples: a criminal trial\nand a clinical trial for a new screening for a dangerous medical condition." }] }, { "id": 255, "type": "component", "name": "Trial", "children": [] }, { "id": 256, "type": "component", "name": "Disease", "children": [] }, { "id": 257, "type": "component", "name": "p", "children": [{ "id": 258, "type": "textnode", "value": "In the criminal trial case, innocent until proven guilty is considered a human right\nby the UN’s Universal Declaration of Human Rights, so it is much worse to have a type I\nerror than a type II. Thus, we set the significance level very low, which is why in the\nUS federal court juries much reach a unanimous verdict. In the medical screening case,\nwe would much rather have a type I error with a false positive which can be corrected than\na missed diagnosis where someone could die because they thought they didn’t have\nthe condition. Thus, the significance level would be set higher." }] }, { "id": 259, "type": "component", "name": "h1", "children": [{ "id": 260, "type": "textnode", "value": "Z-test Issues" }] }, { "id": 261, "type": "component", "name": "p", "children": [{ "id": 262, "type": "textnode", "value": "Z-tests are not without downsides. Even with a standard significance\nlevel of 0.05, 1/20 tests that should fail to reject the null will reject the null due\nto random error. Also, since theoretically you could continously resample until you\nget the result you are looking for, Z-tests can only be done once as repeated tries are\nconsidered unethical. This causes a problem, as a core foundation of science is that\nexperiments should be reproducable. If you are interested in reading more, click\nthis " }, { "id": 263, "type": "component", "name": "link", "properties": { "text": { "type": "value", "value": "link" }, "url": { "type": "value", "value": "https://link.springer.com/article/10.1007/s13164-018-0421-4" } }, "children": [] }, { "id": 264, "type": "textnode", "value": " for\na paper that discusses the issues with replicating tests that are based on p-values" }] }, { "id": 265, "type": "component", "name": "h1", "children": [{ "id": 266, "type": "textnode", "value": "Summary" }] }, { "id": 267, "type": "component", "name": "p", "children": [{ "id": 268, "type": "textnode", "value": "A Z-test is one of the first things taught in statistics and introduces many concepts that\nmore advanced topics build on. Thank you for reading, and I hope you learned something today!\n\n" }] }] }] };
 
 },{}],"__IDYLL_COMPONENTS__":[function(require,module,exports){
 'use strict';
@@ -107527,12 +108526,12 @@ module.exports = { "id": 0, "type": "component", "name": "div", "children": [{ "
 module.exports = {
 	'text-container': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-container.js'),
 	'header': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/header.js'),
-	'h2': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js'),
+	'h1': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js'),
 	'coin': require('/Users/ShuHan/Downloads/396final/components/coin.js'),
 	'inline': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/inline.js'),
 	'coin-rigged': require('/Users/ShuHan/Downloads/396final/components/coinrigged.js'),
+	'h2': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js'),
 	'guess1': require('/Users/ShuHan/Downloads/396final/components/guess1.js'),
-	'h1': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js'),
 	'coin3': require('/Users/ShuHan/Downloads/396final/components/coin3.js'),
 	'guess2': require('/Users/ShuHan/Downloads/396final/components/guess2.js'),
 	'distributions': require('/Users/ShuHan/Downloads/396final/components/Distributions.js'),
@@ -107540,11 +108539,17 @@ module.exports = {
 	'float': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/float.js'),
 	'text-input': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-input.js'),
 	'equation': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/equation.js'),
+	'aside': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/aside.js'),
 	'hyp-test': require('/Users/ShuHan/Downloads/396final/components/HypTest.js'),
-	'select': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js')
+	'select': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js'),
+	'error-test': require('/Users/ShuHan/Downloads/396final/components/ErrorTest.js'),
+	'range': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/range.js'),
+	'trial': require('/Users/ShuHan/Downloads/396final/components/trial.js'),
+	'disease': require('/Users/ShuHan/Downloads/396final/components/disease.js'),
+	'link': require('/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/link.js')
 };
 
-},{"/Users/ShuHan/Downloads/396final/components/Distributions.js":"/Users/ShuHan/Downloads/396final/components/Distributions.js","/Users/ShuHan/Downloads/396final/components/HypTest.js":"/Users/ShuHan/Downloads/396final/components/HypTest.js","/Users/ShuHan/Downloads/396final/components/coin.js":"/Users/ShuHan/Downloads/396final/components/coin.js","/Users/ShuHan/Downloads/396final/components/coin3.js":"/Users/ShuHan/Downloads/396final/components/coin3.js","/Users/ShuHan/Downloads/396final/components/coinrigged.js":"/Users/ShuHan/Downloads/396final/components/coinrigged.js","/Users/ShuHan/Downloads/396final/components/guess1.js":"/Users/ShuHan/Downloads/396final/components/guess1.js","/Users/ShuHan/Downloads/396final/components/guess2.js":"/Users/ShuHan/Downloads/396final/components/guess2.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/equation.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/equation.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/float.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/float.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/header.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/header.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/inline.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/inline.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-container.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-container.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-input.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-input.js"}],"__IDYLL_CONTEXT__":[function(require,module,exports){
+},{"/Users/ShuHan/Downloads/396final/components/Distributions.js":"/Users/ShuHan/Downloads/396final/components/Distributions.js","/Users/ShuHan/Downloads/396final/components/ErrorTest.js":"/Users/ShuHan/Downloads/396final/components/ErrorTest.js","/Users/ShuHan/Downloads/396final/components/HypTest.js":"/Users/ShuHan/Downloads/396final/components/HypTest.js","/Users/ShuHan/Downloads/396final/components/coin.js":"/Users/ShuHan/Downloads/396final/components/coin.js","/Users/ShuHan/Downloads/396final/components/coin3.js":"/Users/ShuHan/Downloads/396final/components/coin3.js","/Users/ShuHan/Downloads/396final/components/coinrigged.js":"/Users/ShuHan/Downloads/396final/components/coinrigged.js","/Users/ShuHan/Downloads/396final/components/disease.js":"/Users/ShuHan/Downloads/396final/components/disease.js","/Users/ShuHan/Downloads/396final/components/guess1.js":"/Users/ShuHan/Downloads/396final/components/guess1.js","/Users/ShuHan/Downloads/396final/components/guess2.js":"/Users/ShuHan/Downloads/396final/components/guess2.js","/Users/ShuHan/Downloads/396final/components/trial.js":"/Users/ShuHan/Downloads/396final/components/trial.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/aside.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/aside.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/button.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/equation.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/equation.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/float.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/float.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h1.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/h2.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/header.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/header.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/inline.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/inline.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/link.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/link.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/range.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/range.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/select.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-container.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-container.js","/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-input.js":"/Users/ShuHan/Downloads/396final/node_modules/idyll-components/dist/cjs/text-input.js"}],"__IDYLL_CONTEXT__":[function(require,module,exports){
 
 module.exports = function () {
 
